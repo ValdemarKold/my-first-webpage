@@ -1,56 +1,135 @@
-let clickCount = 0;
-let colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
-let colorIndex = 0;
-let greetings = ['Hello', 'Hi', 'Hey', 'Greetings', 'Welcome'];
-let greetingIndex = 0;
+const todoInput = document.getElementById('todoInput');
+const prioritySelect = document.getElementById('prioritySelect');
+const addButton = document.getElementById('addButton');
+const todoList = document.getElementById('todoList');
 
-// Get references to elements
-const input = document.getElementById('nameInput');
-const button = document.getElementById('greetButton');
-const output = document.getElementById('output');
+// Load tasks from localStorage when page loads
+loadTasks();
 
-// Function to generate a random color
-function getRandomColor() {
-    // Generate random values for red, green, blue (0-255)
-    let r = Math.floor(Math.random() * 256);
-    let g = Math.floor(Math.random() * 256);
-    let b = Math.floor(Math.random() * 256);
-    
-    // Return as RGB color string
-    return 'rgb(' + r + ', ' + g + ', ' + b + ')';
-}
-
-// Listen for button click
-button.addEventListener('click', function() {
-    // Get the value from the input
-    let name = input.value;
-    clickCount = clickCount + 1;
-    console.log("Button clicked " + clickCount + " times");
-    
-    // Update the output paragraph
-    if (name === "") {
-        output.textContent = "Please enter your name!";
-    } else {
-        output.textContent = greetings[greetingIndex] + ", " + name + "!";
-        greetingIndex = greetingIndex + 1;
-        if (greetingIndex >= greetings.length) {
-            greetingIndex = 0;
-    }}
-    
-    // Change background to cycling color
-    document.body.style.backgroundColor = colors[colorIndex];
-    colorIndex = colorIndex + 1;
-    
-    // Reset to first color when we reach the end
-    if (colorIndex >= colors.length) {
-        colorIndex = 0;
-    }
-    
-    // Change text color randomly
-    output.style.color = getRandomColor();
+// Add task when button is clicked
+addButton.addEventListener('click', function() {
+    addTask();
 });
 
-// Print all colors to console (runs once when page loads)
-for (let i = 0; i < colors.length; i++) {
-    console.log("Color " + i + ": " + colors[i]);
+// Add task when Enter key is pressed
+todoInput.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        addTask();
+    }
+});
+
+function addTask() {
+    const taskText = todoInput.value.trim();
+    const priority = prioritySelect.value;
+    
+    // Don't add empty tasks
+    if (taskText === '') {
+        alert('Please enter a task!');
+        return;
+    }
+    
+    // Create task object
+    const task = {
+        text: taskText,
+        priority: priority,
+        completed: false,
+        id: Date.now() // Unique ID based on timestamp
+    };
+    
+    // Create the task element
+    createTaskElement(task);
+    
+    // Save to localStorage
+    saveTasks();
+    
+    // Clear the input
+    todoInput.value = '';
+    todoInput.focus();
+}
+
+function createTaskElement(task) {
+    // Create new list item
+    const li = document.createElement('li');
+    li.className = 'todo-item priority-' + task.priority;
+    li.dataset.id = task.id; // Store ID for later reference
+    li.dataset.priority = task.priority; // Store priority as data attribute
+    
+    if (task.completed) {
+        li.classList.add('completed');
+    }
+    
+    // Create task content container
+    const taskContent = document.createElement('div');
+    taskContent.className = 'task-content';
+    
+    // Create priority badge
+    const badge = document.createElement('span');
+    badge.className = 'priority-badge ' + task.priority;
+    badge.textContent = task.priority;
+    
+    // Create task text
+    const taskSpan = document.createElement('span');
+    taskSpan.className = 'task-text'; // Add a class for easy targeting
+    taskSpan.textContent = task.text;
+    
+    // Add badge and text to content
+    taskContent.appendChild(badge);
+    taskContent.appendChild(taskSpan);
+    
+    // Create delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className = 'delete-btn';
+    
+    // Delete task when button is clicked
+    deleteBtn.addEventListener('click', function() {
+        li.remove();
+        saveTasks(); // Update localStorage
+    });
+    
+    // Toggle completed when task is clicked
+    li.addEventListener('click', function(event) {
+        // Don't toggle if clicking the delete button
+        if (event.target !== deleteBtn) {
+            li.classList.toggle('completed');
+            saveTasks(); // Update localStorage
+        }
+    });
+    
+    // Add content and button to list item
+    li.appendChild(taskContent);
+    li.appendChild(deleteBtn);
+    
+    // Add list item to the list
+    todoList.appendChild(li);
+}
+
+function saveTasks() {
+    const tasks = [];
+    const taskElements = document.querySelectorAll('.todo-item');
+    
+    taskElements.forEach(function(li) {
+        const task = {
+            id: li.dataset.id,
+            text: li.querySelector('.task-text').textContent, // Use the task-text class
+            priority: li.dataset.priority,
+            completed: li.classList.contains('completed')
+        };
+        tasks.push(task);
+    });
+    
+    // Save to localStorage as JSON string
+    localStorage.setItem('todos', JSON.stringify(tasks));
+}
+
+function loadTasks() {
+    // Get tasks from localStorage
+    const savedTasks = localStorage.getItem('todos');
+    
+    if (savedTasks) {
+        const tasks = JSON.parse(savedTasks);
+        tasks.forEach(function(task) {
+            createTaskElement(task);
+        });
+    }
 }
