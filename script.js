@@ -1,12 +1,17 @@
-// Variables store data
-let name = "Valdemar";
-let age = 25;
-let isLearning = true;
+// Get references to elements
+const input = document.getElementById('nameInput');
+const button = document.getElementById('greetButton');
+const output = document.getElementById('output');
 
-console.log("Name:", name);
-console.log("Age:", age);
-console.log("Learning:", isLearning);
-
-// You can change variables
-age = 26;
-console.log("New age:", age);
+// Listen for button click
+button.addEventListener('click', function() {
+    // Get the value from the input
+    let name = input.value;
+    
+    // Update the output paragraph
+    if (name === "") {
+        output.textContent = "Please enter your name!";
+    } else {
+        output.textContent = "Hello, " + name + "!";
+    }
+});
