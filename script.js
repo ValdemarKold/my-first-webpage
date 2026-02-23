@@ -87,12 +87,24 @@ function createTaskElement(task) {
     });
     
     li.addEventListener('click', function(event) {
-        if (event.target !== deleteBtn) {
-            li.classList.toggle('completed');
-            // You could add an API call here to update completion status
-        }
-    });
-    
+    if (event.target !== deleteBtn) {
+        li.classList.toggle('completed');
+        
+        // Update completion status on server
+        const isCompleted = li.classList.contains('completed');
+        fetch(`${API_URL}/${task.id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ completed: isCompleted })
+        })
+        .then(response => response.json())
+        .then(data => console.log('Task updated:', data))
+        .catch(error => console.error('Error updating task:', error));
+    }
+});
+
     li.appendChild(taskContent);
     li.appendChild(deleteBtn);
     todoList.appendChild(li);
