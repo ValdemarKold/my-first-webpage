@@ -3,7 +3,21 @@ const prioritySelect = document.getElementById('prioritySelect');
 const addButton = document.getElementById('addButton');
 const todoList = document.getElementById('todoList');
 
-const API_URL = 'http://localhost:5000/todos';
+// Get username from localStorage or prompt user
+let currentUser = localStorage.getItem('currentUser');
+if (!currentUser) {
+    currentUser = prompt('Enter your username:');
+    if (currentUser) {
+        localStorage.setItem('currentUser', currentUser);
+    } else {
+        currentUser = 'guest';
+    }
+}
+
+const API_URL = `http://localhost:5000/todos/${currentUser}`;
+
+// Display current user
+document.querySelector('h1').textContent = `${currentUser}'s To-Do List`;
 
 // Load tasks from API when page loads
 loadTasks();
@@ -34,7 +48,6 @@ function addTask() {
         id: Date.now()
     };
     
-    // Send task to API
     fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -44,13 +57,14 @@ function addTask() {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Task added:', data);
         createTaskElement(data);
         todoInput.value = '';
         todoInput.focus();
     })
     .catch(error => {
         console.error('Error adding task:', error);
-        alert('Failed to add task');
+        alert('Failed to add task. Is the API server running?');
     });
 }
 
@@ -87,24 +101,23 @@ function createTaskElement(task) {
     });
     
     li.addEventListener('click', function(event) {
-    if (event.target !== deleteBtn) {
-        li.classList.toggle('completed');
-        
-        // Update completion status on server
-        const isCompleted = li.classList.contains('completed');
-        fetch(`${API_URL}/${task.id}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ completed: isCompleted })
-        })
-        .then(response => response.json())
-        .then(data => console.log('Task updated:', data))
-        .catch(error => console.error('Error updating task:', error));
-    }
-});
-
+        if (event.target !== deleteBtn) {
+            li.classList.toggle('completed');
+            
+            const isCompleted = li.classList.contains('completed');
+            fetch(`http://localhost:5000/todos/${currentUser}/${task.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ completed: isCompleted })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Task updated:', data))
+            .catch(error => console.error('Error updating task:', error));
+        }
+    });
+    
     li.appendChild(taskContent);
     li.appendChild(deleteBtn);
     todoList.appendChild(li);
@@ -114,7 +127,8 @@ function loadTasks() {
     fetch(API_URL)
         .then(response => response.json())
         .then(tasks => {
-            todoList.innerHTML = ''; // Clear existing tasks
+            console.log('Loaded tasks:', tasks);
+            todoList.innerHTML = '';
             tasks.forEach(task => {
                 createTaskElement(task);
             });
@@ -125,11 +139,12 @@ function loadTasks() {
 }
 
 function deleteTask(taskId, element) {
-    fetch(`${API_URL}/${taskId}`, {
+    fetch(`http://localhost:5000/todos/${currentUser}/${taskId}`, {
         method: 'DELETE'
     })
     .then(response => {
         if (response.ok) {
+            console.log('Task deleted:', taskId);
             element.remove();
         }
     })
@@ -138,3 +153,13 @@ function deleteTask(taskId, element) {
         alert('Failed to delete task');
     });
 }
+
+// Add logout button functionality
+const logoutBtn = document.createElement('button');
+logoutBtn.textContent = 'Switch User';
+logoutBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer;';
+logoutBtn.addEventListener('click', function() {
+    localStorage.removeItem('currentUser');
+    location.reload();
+});
+document.body.appendChild(logoutBtn);
